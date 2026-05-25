@@ -2,7 +2,7 @@
 <html lang="ar">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>المنصة المتقدمة للاستجابة الجغرافية والتحليل الميداني - OpenLayers</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@8.2.0/ol.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -11,9 +11,9 @@
 <style>
 :root {
   --bg-dark: #090d16;
-  --bg-panel: rgba(13, 20, 35, 0.92);
-  --bg-card: rgba(255, 255, 255, 0.03);
-  --border: rgba(255, 255, 255, 0.07);
+  --bg-panel: rgba(13, 20, 35, 0.95);
+  --bg-card: rgba(255, 255, 255, 0.04);
+  --border: rgba(255, 255, 255, 0.08);
   --border-hover: rgba(59, 130, 246, 0.4);
   --accent: #2563eb;
   --accent-blue: #3b82f6;
@@ -38,6 +38,7 @@ body {
   overflow: hidden;
   background: var(--bg-dark);
   color: var(--text-primary);
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* ═══ MAP CONTAINER ═══ */
@@ -56,6 +57,7 @@ body {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
   box-shadow: 0 10px 40px rgba(0,0,0,0.6);
   z-index: 1000;
   position: absolute;
@@ -81,7 +83,7 @@ body {
 }
 
 .brand-logo {
-  font-size: 20px;
+  font-size: 18px;
   background: linear-gradient(135deg, #3b82f6, #06b6d4);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -90,8 +92,27 @@ body {
 
 .nav-actions {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   align-items: center;
+}
+
+.nav-divider {
+  width: 1px;
+  height: 20px;
+  background: var(--border);
+}
+
+/* ═══ MENU TOGGLE (MOBILE) ═══ */
+.menu-toggle-btn {
+  display: none;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  cursor: pointer;
+  font-weight: 600;
 }
 
 /* ═══ BUTTONS STYLE ═══ */
@@ -99,7 +120,7 @@ body {
   background: var(--bg-card);
   color: var(--text-secondary);
   border: 1px solid var(--border);
-  padding: 8px 14px;
+  padding: 8px 12px;
   border-radius: var(--radius-sm);
   cursor: pointer;
   font-size: 13px;
@@ -108,6 +129,7 @@ body {
   align-items: center;
   gap: 6px;
   transition: all 0.2s ease;
+  white-space: nowrap;
 }
 
 .btn-core:hover {
@@ -142,9 +164,11 @@ body {
 #left-analysis-panel {
   top: 85px;
   left: 15px;
-  width: 280px;
+  width: 290px;
   padding: 16px;
   display: none;
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
 }
 
 .panel-section-title {
@@ -212,7 +236,7 @@ body {
   cursor: pointer;
 }
 
-.layer-card-title input { cursor: pointer; accent-color: var(--accent-blue); }
+.layer-card-title input { cursor: pointer; accent-color: var(--accent-blue); width: 16px; height: 16px; }
 
 .opacity-slider-wrapper {
   display: flex;
@@ -288,36 +312,104 @@ body {
 }
 .ol-popup-closer:hover { color: var(--danger); }
 
-/* ═══ CAPTURE & TOOLTIP INFO ═══ */
+/* ═══ HUDS & TOASTS ═══ */
 #draw-live-tooltip {
   position: absolute; background: var(--bg-panel); border: 1px solid var(--accent-blue);
   padding: 4px 10px; border-radius: var(--radius-sm); font-size: 11px;
   color: #fff; pointer-events: none; z-index: 2000; display: none; box-shadow: 0 0 10px var(--accent-glow);
 }
 #coords-hud {
-  position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%);
+  position: absolute; bottom: 15px; left: 15px;
   z-index: 1000; background: var(--bg-panel); border: 1px solid var(--border);
-  padding: 6px 16px; border-radius: 30px; font-size: 11px; color: var(--text-secondary);
+  padding: 6px 14px; border-radius: 30px; font-size: 11px; color: var(--text-secondary);
   font-variant-numeric: tabular-nums; letter-spacing: 0.03em; pointer-events: none;
 }
 #toast-notification {
-  position: absolute; bottom: 65px; left: 50%; transform: translateX(-50%) translateY(20px);
+  position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(20px);
   z-index: 3000; background: #2563eb; padding: 10px 20px; border-radius: var(--radius-sm);
   font-size: 13px; font-weight: 500; opacity: 0; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); pointer-events: none;
+  text-align: center; max-width: 90vw;
 }
 #toast-notification.active { opacity: 1; transform: translateX(-50%) translateY(0); }
 
 /* ═══ ZOOM GRAPHICS ═══ */
 #spatial-zoom-ctrl {
   position: absolute; right: 15px; bottom: 15px; z-index: 1000;
-  display: flex; flex-direction: column; gap: 5px;
+  display: flex; flex-direction: column; gap: 6px;
 }
 .zoom-sub-btn {
-  width: 36px; height: 36px; font-size: 16px; border-radius: var(--radius-sm);
+  width: 40px; height: 40px; font-size: 18px; border-radius: var(--radius-sm);
   background: var(--bg-panel); border: 1px solid var(--border); color: #fff;
   display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.15s;
 }
 .zoom-sub-btn:hover { border-color: var(--accent-blue); background: var(--bg-card); }
+
+/* 📱 ═══ RESPONSIVE MEDIA QUERIES (MOBILE FIXES) ═══ */
+@media (max-width: 992px) {
+  .menu-toggle-btn {
+    display: block; /* Show menu button on mobile */
+  }
+
+  .nav-actions {
+    display: none; /* Hide full actions list by default */
+    flex-direction: column;
+    position: absolute;
+    top: 60px;
+    left: 0;
+    right: 0;
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px;
+    gap: 10px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  }
+
+  .nav-actions.open {
+    display: flex; /* Show when user clicks hamburger button */
+  }
+
+  .nav-divider {
+    width: 100%;
+    height: 1px;
+    background: var(--border);
+    margin: 4px 0;
+  }
+
+  .btn-core {
+    width: 100%;
+    justify-content: center;
+    padding: 10px;
+    font-size: 14px;
+  }
+
+  #right-control-panel, #left-analysis-panel {
+    top: 80px;
+    left: 15px;
+    right: 15px;
+    width: auto; /* Take full width on mobile */
+    max-height: 45vh;
+  }
+  
+  #coords-hud {
+    bottom: 70px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 10px;
+    white-space: nowrap;
+  }
+  
+  #spatial-zoom-ctrl {
+    bottom: 120px;
+    right: 15px;
+  }
+
+  .ol-popup {
+    min-width: 220px;
+    left: -110px;
+    padding: 12px;
+  }
+}
 </style>
 </head>
 <body>
@@ -325,21 +417,24 @@ body {
 <div id="top-navbar" class="glass-panel">
   <div class="brand-section">
     <div class="brand-logo">GeoResponse Pro</div>
-    <div style="width: 1px; height: 20px; background: var(--border);"></div>
-    <div style="font-size: 12px; color: var(--text-secondary);">غرفة العمليات الجغرافية الذكية</div>
+    <div class="nav-divider" class="hidden-mobile"></div>
+    <div style="font-size: 11px; color: var(--text-secondary);" class="hidden-mobile">غرفة العمليات الجغرافية الميدانية</div>
   </div>
   
-  <div class="nav-actions">
+  <button class="menu-toggle-btn" onclick="toggleMobileMenu()">☰ الأدوات</button>
+  
+  <div class="nav-actions" id="nav-actions-menu">
     <button class="btn-core" id="btn-toggle-layers" onclick="togglePanel('left-analysis-panel')">📁 التحليل والطبقات</button>
-    <div style="width: 1px; height: 20px; background: var(--border);"></div>
+    <button class="btn-core" id="btn-toggle-stats" onclick="togglePanel('right-control-panel')">📊 الإحصائيات والموقع</button>
+    <div class="nav-divider"></div>
     <button class="btn-core" id="draw-point-btn" onclick="activateInteraction('DrawPoint')">📍 رصد ضرر</button>
-    <button class="btn-core" id="draw-line-btn" onclick="activateInteraction('MeasureLine')">📏 قياس مسافة</button>
-    <button class="btn-core" id="draw-poly-btn" onclick="activateInteraction('MeasurePoly')">📐 قياس مساحة</button>
-    <button class="btn-core" id="modify-mode-btn" onclick="activateInteraction('ModifyMode')">⬈ التعديل الجغرافي الذكي</button>
-    <div style="width: 1px; height: 20px; background: var(--border);"></div>
+    <button class="btn-core" id="draw-line-btn" onclick="activateInteraction('MeasureLine')">📏 مسافة</button>
+    <button class="btn-core" id="draw-poly-btn" onclick="activateInteraction('MeasurePoly')">📐 مساحة</button>
+    <button class="btn-core" id="modify-mode-btn" onclick="activateInteraction('ModifyMode')">⬈ التعديل الذكي</button>
+    <div class="nav-divider"></div>
     <button class="btn-core" onclick="triggerMapCapture()">📸 لقطة تقرير</button>
-    <button class="btn-core" onclick="downloadGeoJSON()">⬇ تصدير البيانات</button>
-    <button class="btn-core btn-danger-core" onclick="wipeAllFeatures()" style="color:#fda4af;">🗑 مسح السجل</button>
+    <button class="btn-core" onclick="downloadGeoJSON()">⬇ تصدير</button>
+    <button class="btn-core btn-danger-core" onclick="wipeAllFeatures()" style="color:#fda4af;">🗑 مسح الكل</button>
   </div>
 </div>
 
@@ -382,13 +477,13 @@ body {
     </div>
   </div>
 
-  <div class="panel-section-title">أدوات إضافية (تحليل وتصفية)</div>
-  <div style="display:flex; flex-direction:column; gap:6px;">
-    <label style="font-size:12px; color:var(--text-secondary); display:flex; gap:6px; align-items:center;">
-      <input type="checkbox" id="filter-dmg-only" checked onchange="applyDataFilter()"> عرض نقاط الضرر الميداني
+  <div class="panel-section-title">تحليل وتصفية البيانات الميدانية</div>
+  <div style="display:flex; flex-direction:column; gap:8px;">
+    <label style="font-size:12.5px; color:var(--text-secondary); display:flex; gap:8px; align-items:center; cursor:pointer;">
+      <input type="checkbox" id="filter-dmg-only" checked onchange="applyDataFilter()" style="width:16px; height:16px;"> عرض نقاط الضرر الميداني
     </label>
-    <label style="font-size:12px; color:var(--text-secondary); display:flex; gap:6px; align-items:center;">
-      <input type="checkbox" id="filter-msr-only" checked onchange="applyDataFilter()"> عرض القياسات والمضلعات
+    <label style="font-size:12.5px; color:var(--text-secondary); display:flex; gap:8px; align-items:center; cursor:pointer;">
+      <input type="checkbox" id="filter-msr-only" checked onchange="applyDataFilter()" style="width:16px; height:16px;"> عرض القياسات والمضلعات
     </label>
   </div>
 </div>
@@ -404,11 +499,11 @@ body {
   <div class="stats-grid">
     <div class="stat-card">
       <div class="stat-card-val" id="panel-val-dmg" style="color:var(--damage-color)">0</div>
-      <div class="stat-card-lbl">نقاط الأضرار المرصودة</div>
+      <div class="stat-card-lbl">نقاط الأضرار</div>
     </div>
     <div class="stat-card">
       <div class="stat-card-val" id="panel-val-line" style="color:var(--measure-color)">0</div>
-      <div class="stat-card-lbl">مسارات الخطوط المقاسة</div>
+      <div class="stat-card-lbl">مسارات الخطوط</div>
     </div>
     <div class="stat-card">
       <div class="stat-card-val" id="panel-val-poly" style="color:#a78bfa">0</div>
@@ -416,7 +511,7 @@ body {
     </div>
     <div class="stat-card">
       <div class="stat-card-val" id="panel-val-total" style="color:var(--success)">0</div>
-      <div class="stat-card-lbl">إجمالي المعالم الجغرافية</div>
+      <div class="stat-card-lbl">إجمالي المعالم</div>
     </div>
   </div>
 </div>
@@ -429,11 +524,13 @@ body {
 </div>
 
 <div id="draw-live-tooltip"></div>
+
 <div id="spatial-zoom-ctrl">
   <button class="zoom-sub-btn" onclick="mapZoom(1)">＋</button>
   <button class="zoom-sub-btn" onclick="mapZoom(-1)">－</button>
   <button class="zoom-sub-btn" onclick="teleportToHome()">⌂</button>
 </div>
+
 <div id="coords-hud">0.00000° N   0.00000° E</div>
 <div id="toast-notification">Notification text</div>
 
@@ -514,7 +611,7 @@ const mainMap = new ol.Map({
   layers: [layerOSM, layerSatellite, layerSentinel, coreVectorLayer],
   overlays: [mapOverlay],
   view: new ol.View({ center: defaultGazaCenter, zoom: 14 }),
-  controls: [] // Clean UI without raw default controls
+  controls: [] 
 });
 
 // ══════════════════════════════════════════════
@@ -567,7 +664,6 @@ let liveSketchFeature = null;
 const tooltipHUD = document.getElementById('draw-live-tooltip');
 
 function activateInteraction(mode) {
-  // Remove past active interactions
   if(currentInteraction) mainMap.removeInteraction(currentInteraction);
   mainMap.getInteractions().forEach(inter => {
     if(inter instanceof ol.interaction.Draw || inter instanceof ol.interaction.Modify || inter instanceof ol.interaction.Snap) {
@@ -578,6 +674,7 @@ function activateInteraction(mode) {
   liveSketchFeature = null;
   tooltipHUD.style.display = 'none';
   document.querySelectorAll('.nav-actions .btn-core').forEach(b => b.classList.remove('active'));
+  closeMobileMenu();
 
   if (mode === 'DrawPoint') {
     document.getElementById('draw-point-btn').classList.add('active');
@@ -633,7 +730,6 @@ function activateInteraction(mode) {
     mainMap.addInteraction(modify);
     mainMap.addInteraction(snap);
     
-    // Live feedback when dragging features to update geometry dynamic labels!
     modify.on('modifyend', function(e) {
       e.features.forEach(f => {
         wipeLabelByFeature(f);
@@ -682,7 +778,6 @@ mainMap.on('pointermove', function(evt) {
 let currentlyTargetedFeature = null;
 
 mainMap.on('singleclick', function(evt) {
-  // Prevent popup from showing if we are actively drawing features
   const activeDraw = mainMap.getInteractions().getArray().some(i => i instanceof ol.interaction.Draw && i.getActive());
   if(activeDraw) return;
 
@@ -765,13 +860,12 @@ function applyDataFilter() {
 
   coreVectorSource.getFeatures().forEach(f => {
     const sType = f.get('spatialType');
-    wipeLabelByFeature(f); // Clear to re-evaluate visibility
+    wipeLabelByFeature(f); 
     
-    // We can simulate visibility by updating style dynamically
     if ((sType === 'damage_node' && !showDmg) || (sType === 'measurement' && !showMsr)) {
-      f.setStyle(new ol.style.Style({})); // Invisible style
+      f.setStyle(new ol.style.Style({})); 
     } else {
-      f.setStyle(undefined); // Reset to layer core style
+      f.setStyle(undefined); 
       constructFeatureMapLabel(f);
     }
   });
@@ -804,6 +898,7 @@ function jumpToCoordinates() {
     const targetProj = ol.proj.fromLonLat([tokens[0], tokens[1]]);
     mainMap.getView().animate({ center: targetProj, zoom: 17, duration: 800 });
     triggerToast('✈ تم الانتقال بنجاح للموقع الجغرافي');
+    closeMobileMenu();
   } else { triggerToast('⚠ صيغة الإحداثيات خاطئة (خط طول , خط عرض)'); }
 }
 
@@ -816,7 +911,8 @@ function downloadGeoJSON() {
   a.href = URL.createObjectURL(blob);
   a.download = `GeoResponse_Export_${new Date().toISOString().slice(0,10)}.geojson`;
   a.click();
-  triggerToast('✅ تم تصدير ملف ونموذج الـ GeoJSON بنجاح');
+  triggerToast('✅ تم تصدير ونموذج الـ GeoJSON بنجاح');
+  closeMobileMenu();
 }
 
 function wipeAllFeatures() {
@@ -828,10 +924,12 @@ function wipeAllFeatures() {
   mapOverlay.setPosition(undefined);
   syncDataStorage();
   calculateDashboardMetrics();
-  triggerToast('🗑 تم تنظيف قاعدة البيانات الجغرافية وتصفير العدادات');
+  triggerToast('🗑 تم تنظيف قاعدة البيانات وتصفير العدادات');
+  closeMobileMenu();
 }
 
 function triggerMapCapture() {
+  closeMobileMenu();
   mainMap.once('rendercomplete', function() {
     const canvas = document.createElement('canvas');
     const size = mainMap.getSize();
@@ -868,9 +966,26 @@ function triggerMapCapture() {
 //  8. INTERACTIVE UTILITIES
 // ══════════════════════════════════════════════
 function togglePanel(id) {
+  const panels = ['left-analysis-panel', 'right-control-panel'];
+  panels.forEach(pId => {
+    if(pId !== id) document.getElementById(pId).style.display = 'none';
+  });
+
   const p = document.getElementById(id);
   p.style.display = p.style.display === 'block' ? 'none' : 'block';
+  closeMobileMenu();
 }
+
+function toggleMobileMenu() {
+  const menu = document.getElementById('nav-actions-menu');
+  menu.classList.toggle('open');
+}
+
+function closeMobileMenu() {
+  const menu = document.getElementById('nav-actions-menu');
+  menu.classList.remove('open');
+}
+
 function mapZoom(delta) { const v = mainMap.getView(); v.animate({ zoom: v.getZoom() + delta, duration: 200 }); }
 function teleportToHome() { mainMap.getView().animate({ center: defaultGazaCenter, zoom: 14, duration: 500 }); }
 
@@ -882,7 +997,6 @@ function triggerToast(text) {
   toastTimer = setTimeout(() => t.classList.remove('active'), 3200);
 }
 
-// System Startup Initiation
 initialBootLoad();
 </script>
 </body>
