@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>المنصة المتقدمة للاستجابة الجغرافية والتحليل الميداني - OpenLayers</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@8.2.0/ol.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --bg-dark: #090d16;
+  --bg-panel: rgba(13, 20, 35, 0.92);
+  --bg-card: rgba(255, 255, 255, 0.03);
+  --border: rgba(255, 255, 255, 0.07);
+  --border-hover: rgba(59, 130, 246, 0.4);
+  --accent: #2563eb;
+  --accent-blue: #3b82f6;
+  --accent-glow: rgba(37, 99, 235, 0.35);
+  --danger: #ef4444;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #64748b;
+  --measure-color: #06b6d4;
+  --damage-color: #f43f5e;
+  --radius: 12px;
+  --radius-sm: 8px;
+}
+
+* { box-sizing: border-box; font-family: 'IBM Plex Sans Arabic', sans-serif; }
+
+body {
+  margin: 0;
+  direction: rtl;
+  overflow: hidden;
+  background: var(--bg-dark);
+  color: var(--text-primary);
+}
+
+/* ═══ MAP CONTAINER ═══ */
+#map {
+  width: 100%;
+  height: 100vh;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+}
+
+/* ═══ GLASSMORPHISM PANELS ═══ */
+.glass-panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  backdrop-filter: blur(25px);
+  box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+  z-index: 1000;
+  position: absolute;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ═══ TOP NAVBAR / TOOLBAR ═══ */
+#top-navbar {
+  top: 15px;
+  left: 15px;
+  right: 15px;
+  padding: 10px 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+}
+
+.brand-section {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand-logo {
+  font-size: 20px;
+  background: linear-gradient(135deg, #3b82f6, #06b6d4);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 700;
+}
+
+.nav-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* ═══ BUTTONS STYLE ═══ */
+.btn-core {
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+.btn-core:hover {
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(255,255,255,0.2);
+  color: var(--text-primary);
+}
+
+.btn-core.active {
+  background: var(--accent-glow);
+  border-color: var(--accent-blue);
+  color: #fff;
+  box-shadow: 0 0 15px var(--accent-glow);
+}
+
+.btn-danger-core:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: var(--danger);
+  color: #fca5a5;
+}
+
+/* ═══ SIDEBARS & PANELS POSITIONING ═══ */
+#right-control-panel {
+  top: 85px;
+  right: 15px;
+  width: 310px;
+  padding: 16px;
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+}
+
+#left-analysis-panel {
+  top: 85px;
+  left: 15px;
+  width: 280px;
+  padding: 16px;
+  display: none;
+}
+
+.panel-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 12px;
+  margin-top: 15px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 6px;
+}
+.panel-section-title:first-of-type { margin-top: 0; }
+
+/* ═══ STATS CARDS GRID ═══ */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.stat-card {
+  background: rgba(255,255,255,0.02);
+  border: 1px solid var(--border);
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  text-align: center;
+}
+
+.stat-card-val {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-card-lbl {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+/* ═══ LAYERS LIST ═══ */
+.layer-card {
+  background: rgba(255,255,255,0.01);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px;
+  margin-bottom: 8px;
+}
+
+.layer-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.layer-card-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.layer-card-title input { cursor: pointer; accent-color: var(--accent-blue); }
+
+.opacity-slider-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.opacity-slider-wrapper input[type="range"] {
+  flex: 1;
+  height: 4px;
+  accent-color: var(--accent-blue);
+  cursor: pointer;
+}
+
+.opacity-val-lbl { font-size: 10px; color: var(--text-muted); min-width: 28px; text-align: left; }
+
+/* ═══ SEARCH BOX ═══ */
+.search-wrapper {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.search-input {
+  flex: 1;
+  background: rgba(0,0,0,0.3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  color: #fff;
+  font-size: 12px;
+}
+.search-input:focus { border-color: var(--accent-blue); outline: none; }
+
+/* ═══ MAP PERSISTENT LABELS ═══ */
+.ol-overlay-container { pointer-events: none; }
+.map-geo-label {
+  font-family: 'IBM Plex Sans Arabic', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 30px;
+  backdrop-filter: blur(8px);
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+.label-dmg { background: rgba(244, 63, 94, 0.2); border: 1px solid rgba(244, 63, 94, 0.6); color: #fda4af; }
+.label-msr { background: rgba(6, 182, 212, 0.2); border: 1px solid rgba(6, 182, 212, 0.6); color: #99f6e4; }
+
+/* ═══ INTERACTIVE POPUP ═══ */
+.ol-popup {
+  position: absolute;
+  background: var(--bg-panel);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 16px;
+  border-radius: var(--radius);
+  bottom: 15px;
+  left: -125px;
+  min-width: 250px;
+  backdrop-filter: blur(20px);
+  box-shadow: 0 15px 45px rgba(0,0,0,0.7);
+  color: var(--text-primary);
+}
+.ol-popup::after {
+  content: ''; position: absolute; bottom: -7px; left: 50%;
+  transform: translateX(-50%) rotate(45deg);
+  width: 12px; height: 12px; background: var(--bg-panel);
+  border-right: 1px solid rgba(255,255,255,0.15); border-bottom: 1px solid rgba(255,255,255,0.15);
+}
+.ol-popup-closer {
+  position: absolute; top: 10px; left: 12px;
+  color: var(--text-muted); text-decoration: none; font-size: 14px;
+}
+.ol-popup-closer:hover { color: var(--danger); }
+
+/* ═══ CAPTURE & TOOLTIP INFO ═══ */
+#draw-live-tooltip {
+  position: absolute; background: var(--bg-panel); border: 1px solid var(--accent-blue);
+  padding: 4px 10px; border-radius: var(--radius-sm); font-size: 11px;
+  color: #fff; pointer-events: none; z-index: 2000; display: none; box-shadow: 0 0 10px var(--accent-glow);
+}
+#coords-hud {
+  position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%);
+  z-index: 1000; background: var(--bg-panel); border: 1px solid var(--border);
+  padding: 6px 16px; border-radius: 30px; font-size: 11px; color: var(--text-secondary);
+  font-variant-numeric: tabular-nums; letter-spacing: 0.03em; pointer-events: none;
+}
+#toast-notification {
+  position: absolute; bottom: 65px; left: 50%; transform: translateX(-50%) translateY(20px);
+  z-index: 3000; background: #2563eb; padding: 10px 20px; border-radius: var(--radius-sm);
+  font-size: 13px; font-weight: 500; opacity: 0; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); pointer-events: none;
+}
+#toast-notification.active { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ═══ ZOOM GRAPHICS ═══ */
+#spatial-zoom-ctrl {
+  position: absolute; right: 15px; bottom: 15px; z-index: 1000;
+  display: flex; flex-direction: column; gap: 5px;
+}
+.zoom-sub-btn {
+  width: 36px; height: 36px; font-size: 16px; border-radius: var(--radius-sm);
+  background: var(--bg-panel); border: 1px solid var(--border); color: #fff;
+  display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.15s;
+}
+.zoom-sub-btn:hover { border-color: var(--accent-blue); background: var(--bg-card); }
+</style>
+</head>
+<body>
+
+<div id="top-navbar" class="glass-panel">
+  <div class="brand-section">
+    <div class="brand-logo">GeoResponse Pro</div>
+    <div style="width: 1px; height: 20px; background: var(--border);"></div>
+    <div style="font-size: 12px; color: var(--text-secondary);">غرفة العمليات الجغرافية الذكية</div>
+  </div>
+  
+  <div class="nav-actions">
+    <button class="btn-core" id="btn-toggle-layers" onclick="togglePanel('left-analysis-panel')">📁 التحليل والطبقات</button>
+    <div style="width: 1px; height: 20px; background: var(--border);"></div>
+    <button class="btn-core" id="draw-point-btn" onclick="activateInteraction('DrawPoint')">📍 رصد ضرر</button>
+    <button class="btn-core" id="draw-line-btn" onclick="activateInteraction('MeasureLine')">📏 قياس مسافة</button>
+    <button class="btn-core" id="draw-poly-btn" onclick="activateInteraction('MeasurePoly')">📐 قياس مساحة</button>
+    <button class="btn-core" id="modify-mode-btn" onclick="activateInteraction('ModifyMode')">⬈ التعديل الجغرافي الذكي</button>
+    <div style="width: 1px; height: 20px; background: var(--border);"></div>
+    <button class="btn-core" onclick="triggerMapCapture()">📸 لقطة تقرير</button>
+    <button class="btn-core" onclick="downloadGeoJSON()">⬇ تصدير البيانات</button>
+    <button class="btn-core btn-danger-core" onclick="wipeAllFeatures()" style="color:#fda4af;">🗑 مسح السجل</button>
+  </div>
+</div>
+
+<div id="left-analysis-panel" class="glass-panel">
+  <div class="panel-section-title">طبقات النظام والخرائط الأساسية</div>
+  
+  <div class="layer-card">
+    <div class="layer-card-top">
+      <label class="layer-card-title">
+        <input type="checkbox" id="layer-osm-chk" checked onchange="refreshLayers()"> Vector OSM
+      </label>
+      <span class="opacity-val-lbl" id="layer-osm-lbl">100%</span>
+    </div>
+    <div class="opacity-slider-wrapper">
+      <input type="range" id="layer-osm-sld" min="0" max="1" step="0.01" value="1" oninput="refreshLayers()">
+    </div>
+  </div>
+
+  <div class="layer-card">
+    <div class="layer-card-top">
+      <label class="layer-card-title">
+        <input type="checkbox" id="layer-sat-chk" onchange="refreshLayers()"> Esri Satellite
+      </label>
+      <span class="opacity-val-lbl" id="layer-sat-lbl">100%</span>
+    </div>
+    <div class="opacity-slider-wrapper">
+      <input type="range" id="layer-sat-sld" min="0" max="1" step="0.01" value="1" oninput="refreshLayers()">
+    </div>
+  </div>
+
+  <div class="layer-card">
+    <div class="layer-card-top">
+      <label class="layer-card-title">
+        <input type="checkbox" id="layer-sen-chk" onchange="refreshLayers()"> Sentinel-2 Cloudless
+      </label>
+      <span class="opacity-val-lbl" id="layer-sen-lbl">100%</span>
+    </div>
+    <div class="opacity-slider-wrapper">
+      <input type="range" id="layer-sen-sld" min="0" max="1" step="0.01" value="1" oninput="refreshLayers()">
+    </div>
+  </div>
+
+  <div class="panel-section-title">أدوات إضافية (تحليل وتصفية)</div>
+  <div style="display:flex; flex-direction:column; gap:6px;">
+    <label style="font-size:12px; color:var(--text-secondary); display:flex; gap:6px; align-items:center;">
+      <input type="checkbox" id="filter-dmg-only" checked onchange="applyDataFilter()"> عرض نقاط الضرر الميداني
+    </label>
+    <label style="font-size:12px; color:var(--text-secondary); display:flex; gap:6px; align-items:center;">
+      <input type="checkbox" id="filter-msr-only" checked onchange="applyDataFilter()"> عرض القياسات والمضلعات
+    </label>
+  </div>
+</div>
+
+<div id="right-control-panel" class="glass-panel">
+  <div class="panel-section-title">تحديد موقع سريع (إحداثيات)</div>
+  <div class="search-wrapper">
+    <input type="text" id="search-coord-input" class="search-input" placeholder="خط طول , خط عرض">
+    <button class="btn-core" onclick="jumpToCoordinates()">انتقال</button>
+  </div>
+
+  <div class="panel-section-title">لوحة المؤشرات والمراقبة الإحصائية</div>
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-card-val" id="panel-val-dmg" style="color:var(--damage-color)">0</div>
+      <div class="stat-card-lbl">نقاط الأضرار المرصودة</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card-val" id="panel-val-line" style="color:var(--measure-color)">0</div>
+      <div class="stat-card-lbl">مسارات الخطوط المقاسة</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card-val" id="panel-val-poly" style="color:#a78bfa">0</div>
+      <div class="stat-card-lbl">المساحات والمضلعات</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card-val" id="panel-val-total" style="color:var(--success)">0</div>
+      <div class="stat-card-lbl">إجمالي المعالم الجغرافية</div>
+    </div>
+  </div>
+</div>
+
+<div id="map"></div>
+
+<div id="popup" class="ol-popup">
+  <a href="#" id="popup-closer" class="ol-popup-closer">✕</a>
+  <div id="popup-content"></div>
+</div>
+
+<div id="draw-live-tooltip"></div>
+<div id="spatial-zoom-ctrl">
+  <button class="zoom-sub-btn" onclick="mapZoom(1)">＋</button>
+  <button class="zoom-sub-btn" onclick="mapZoom(-1)">－</button>
+  <button class="zoom-sub-btn" onclick="teleportToHome()">⌂</button>
+</div>
+<div id="coords-hud">0.00000° N   0.00000° E</div>
+<div id="toast-notification">Notification text</div>
+
+<script src="https://cdn.jsdelivr.net/npm/ol@8.2.0/dist/ol.js"></script>
+<script>
+// ══════════════════════════════════════════════
+//  1. LAYER CONFIGURATION & SETUP
+// ══════════════════════════════════════════════
+const layerOSM = new ol.layer.Tile({ source: new ol.source.OSM({ crossOrigin: 'anonymous' }) });
+const layerSatellite = new ol.layer.Tile({
+  source: new ol.source.XYZ({
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    crossOrigin: 'anonymous'
+  }),
+  visible: false
+});
+const layerSentinel = new ol.layer.Tile({
+  source: new ol.source.XYZ({
+    url: 'https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2020_3857/default/GoogleMapsCompatible/{z}/{y}/{x}.jpg',
+    crossOrigin: 'anonymous'
+  }),
+  visible: false
+});
+
+const coreVectorSource = new ol.source.Vector();
+
+// ══════════════════════════════════════════════
+//  2. MODERN VECTOR GEOMETRY STYLING
+// ══════════════════════════════════════════════
+function dynamicStyleEngine(feature) {
+  const fType = feature.get('spatialType');
+  const geomType = feature.getGeometry() ? feature.getGeometry().getType() : '';
+
+  if (fType === 'damage_node') {
+    return new ol.style.Style({
+      image: new ol.style.Circle({
+        radius: 10,
+        fill: new ol.style.Fill({ color: 'rgba(244, 63, 94, 0.9)' }),
+        stroke: new ol.style.Stroke({ color: '#ffffff', width: 2.5 })
+      })
+    });
+  }
+  if (geomType === 'LineString') {
+    return new ol.style.Style({
+      stroke: new ol.style.Stroke({ color: '#06b6d4', width: 3, lineDash: [8, 5] })
+    });
+  }
+  if (geomType === 'Polygon') {
+    return new ol.style.Style({
+      stroke: new ol.style.Stroke({ color: '#a78bfa', width: 3 }),
+      fill: new ol.style.Fill({ color: 'rgba(167, 139, 250, 0.15)' })
+    });
+  }
+}
+
+const coreVectorLayer = new ol.layer.Vector({
+  source: coreVectorSource,
+  style: dynamicStyleEngine
+});
+
+// ══════════════════════════════════════════════
+//  3. CORE MAP INSTANCE INITIALIZATION
+// ══════════════════════════════════════════════
+const defaultGazaCenter = ol.proj.fromLonLat([34.4342, 31.5252]);
+const popupContainer = document.getElementById('popup');
+const popupContent = document.getElementById('popup-content');
+const popupCloser = document.getElementById('popup-closer');
+
+const mapOverlay = new ol.Overlay({
+  element: popupContainer,
+  autoPan: { animation: { duration: 250 } }
+});
+
+popupCloser.onclick = function() { mapOverlay.setPosition(undefined); return false; };
+
+const mainMap = new ol.Map({
+  target: 'map',
+  layers: [layerOSM, layerSatellite, layerSentinel, coreVectorLayer],
+  overlays: [mapOverlay],
+  view: new ol.View({ center: defaultGazaCenter, zoom: 14 }),
+  controls: [] // Clean UI without raw default controls
+});
+
+// ══════════════════════════════════════════════
+//  4. PERSISTENT TEXT LABELS OVERLAYS ON MAP
+// ══════════════════════════════════════════════
+const structuralLabelMap = new Map();
+
+function constructFeatureMapLabel(feature) {
+  const geom = feature.getGeometry();
+  if(!geom) return;
+  
+  const type = geom.getType();
+  const fType = feature.get('spatialType');
+  const labelText = feature.get('nodeName') || '';
+  
+  let targetCoords;
+  if (type === 'Point') targetCoords = geom.getCoordinates();
+  else if (type === 'LineString') targetCoords = geom.getCoordinateAt(0.5);
+  else if (type === 'Polygon') targetCoords = ol.extent.getCenter(geom.getExtent());
+
+  const div = document.createElement('div');
+  div.className = fType === 'damage_node' ? 'map-geo-label label-dmg' : 'map-geo-label label-msr';
+  div.textContent = labelText;
+
+  const textOverlay = new ol.Overlay({
+    element: div,
+    position: targetCoords,
+    positioning: 'center-center',
+    stopEvent: false
+  });
+
+  mainMap.addOverlay(textOverlay);
+  structuralLabelMap.set(ol.util.getUid(feature), textOverlay);
+}
+
+function wipeLabelByFeature(feature) {
+  const id = ol.util.getUid(feature);
+  const targetOverlay = structuralLabelMap.get(id);
+  if (targetOverlay) {
+    mainMap.removeOverlay(targetOverlay);
+    structuralLabelMap.delete(id);
+  }
+}
+
+// ══════════════════════════════════════════════
+//  5. LIVE INTERACTIVE ENGINE (DRAW, MODIFY, SNAP)
+// ══════════════════════════════════════════════
+let currentInteraction = null;
+let liveSketchFeature = null;
+const tooltipHUD = document.getElementById('draw-live-tooltip');
+
+function activateInteraction(mode) {
+  // Remove past active interactions
+  if(currentInteraction) mainMap.removeInteraction(currentInteraction);
+  mainMap.getInteractions().forEach(inter => {
+    if(inter instanceof ol.interaction.Draw || inter instanceof ol.interaction.Modify || inter instanceof ol.interaction.Snap) {
+      mainMap.removeInteraction(inter);
+    }
+  });
+  
+  liveSketchFeature = null;
+  tooltipHUD.style.display = 'none';
+  document.querySelectorAll('.nav-actions .btn-core').forEach(b => b.classList.remove('active'));
+
+  if (mode === 'DrawPoint') {
+    document.getElementById('draw-point-btn').classList.add('active');
+    triggerToast('📍 انقر لتسجيل عقدة ضرر ميداني هندسي');
+    
+    currentInteraction = new ol.interaction.Draw({ source: coreVectorSource, type: 'Point' });
+    mainMap.addInteraction(currentInteraction);
+    
+    currentInteraction.on('drawend', function(e) {
+      setTimeout(() => {
+        const desc = prompt('📍 تفاصيل وتوصيف الضرر الميداني الهندسي:');
+        if (desc && desc.trim()) {
+          e.feature.set('nodeName', desc.trim());
+          e.feature.set('spatialType', 'damage_node');
+          constructFeatureMapLabel(e.feature);
+          syncDataStorage();
+          calculateDashboardMetrics();
+        } else {
+          coreVectorSource.removeFeature(e.feature);
+        }
+        activateInteraction('None');
+      }, 150);
+    });
+  }
+  else if (mode === 'MeasureLine' || mode === 'MeasurePoly') {
+    const isLine = mode === 'MeasureLine';
+    document.getElementById(isLine ? 'draw-line-btn' : 'draw-poly-btn').classList.add('active');
+    triggerToast(isLine ? '📏 انقر لتحديد المسار - نقر مزدوج للإنهاء والاعتماد' : '📐 انقر لتحديد المضلع - نقر مزدوج للاعتماد');
+    
+    currentInteraction = new ol.interaction.Draw({ source: coreVectorSource, type: isLine ? 'LineString' : 'Polygon' });
+    mainMap.addInteraction(currentInteraction);
+
+    currentInteraction.on('drawstart', function(e) { liveSketchFeature = e.feature; });
+    currentInteraction.on('drawend', function(e) {
+      const geom = e.feature.getGeometry();
+      let outputText = evaluateGeometryGeometryValues(geom);
+      
+      e.feature.set('nodeName', outputText);
+      e.feature.set('spatialType', 'measurement');
+      constructFeatureMapLabel(e.feature);
+      syncDataStorage();
+      calculateDashboardMetrics();
+      activateInteraction('None');
+    });
+  }
+  else if (mode === 'ModifyMode') {
+    document.getElementById('modify-mode-btn').classList.add('active');
+    triggerToast('⬈ وضع التعديل النشط: اسحب النقاط لتعديل الأبعاد والمواقع في الوقت الفعلي');
+    
+    const modify = new ol.interaction.Modify({ source: coreVectorSource });
+    const snap = new ol.interaction.Snap({ source: coreVectorSource });
+    
+    mainMap.addInteraction(modify);
+    mainMap.addInteraction(snap);
+    
+    // Live feedback when dragging features to update geometry dynamic labels!
+    modify.on('modifyend', function(e) {
+      e.features.forEach(f => {
+        wipeLabelByFeature(f);
+        if(f.get('spatialType') === 'measurement') {
+          f.set('nodeName', evaluateGeometryGeometryValues(f.getGeometry()));
+        }
+        constructFeatureMapLabel(f);
+      });
+      syncDataStorage();
+      calculateDashboardMetrics();
+    });
+  }
+}
+
+function evaluateGeometryGeometryValues(geom) {
+  const type = geom.getType();
+  if (type === 'LineString') {
+    const len = ol.sphere.getLength(geom);
+    return len > 1000 ? (len / 1000).toFixed(3) + ' كم' : Math.round(len) + ' م';
+  } else if (type === 'Polygon') {
+    const area = ol.sphere.getArea(geom);
+    return area > 1000000 ? (area / 1000000).toFixed(3) + ' كم²' : Math.round(area) + ' م²';
+  }
+  return '';
+}
+
+// Live Mouse Move Tracking HUD
+mainMap.on('pointermove', function(evt) {
+  const lonLat = ol.proj.toLonLat(evt.coordinate);
+  document.getElementById('coords-hud').textContent = lonLat[1].toFixed(5) + '° N   ' + lonLat[0].toFixed(5) + '° E';
+
+  if (!liveSketchFeature) return;
+  const geom = liveSketchFeature.getGeometry();
+  let val = evaluateGeometryGeometryValues(geom);
+  if(val) {
+    tooltipHUD.textContent = val;
+    tooltipHUD.style.display = 'block';
+    tooltipHUD.style.left = (evt.pixel[0] + 15) + 'px';
+    tooltipHUD.style.top = (evt.pixel[1] - 15) + 'px';
+  }
+});
+
+// ══════════════════════════════════════════════
+//  6. DATA ATTRIBUTE QUERY POPUP
+// ══════════════════════════════════════════════
+let currentlyTargetedFeature = null;
+
+mainMap.on('singleclick', function(evt) {
+  // Prevent popup from showing if we are actively drawing features
+  const activeDraw = mainMap.getInteractions().getArray().some(i => i instanceof ol.interaction.Draw && i.getActive());
+  if(activeDraw) return;
+
+  const matchedFeature = mainMap.forEachFeatureAtPixel(evt.pixel, f => f);
+  if (matchedFeature) {
+    currentlyTargetedFeature = matchedFeature;
+    const geom = matchedFeature.getGeometry();
+    const fType = matchedFeature.get('spatialType');
+    const name = matchedFeature.get('nodeName') || 'معلم غير مسمى';
+    const projCoords = geom.getType() === 'Point' ? geom.getCoordinates() : ol.extent.getCenter(geom.getExtent());
+    const finalLonLat = ol.proj.toLonLat(projCoords);
+
+    popupContent.innerHTML = `
+      <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">${fType === 'damage_node' ? '📍 رصد ضرر ميداني' : '📐 قياس جغرافي'}</div>
+      <div style="font-size:14px; font-weight:600; margin-bottom:10px; color:#fff;">${name}</div>
+      <div style="font-size:11px; color:var(--text-secondary); background:rgba(0,0,0,0.2); padding:6px; border-radius:4px; font-family:monospace; direction:ltr; text-align:left; margin-bottom:12px;">
+        Lat: ${finalLonLat[1].toFixed(6)}<br>Lon: ${finalLonLat[0].toFixed(6)}
+      </div>
+      <button class="btn-core btn-danger-core" onclick="removeSingleTargetedFeature()" style="width:100%; justify-content:center; padding:6px;">✕ حذف المعلم جغرافياً</button>
+    `;
+    mapOverlay.setPosition(projCoords);
+  } else {
+    mapOverlay.setPosition(undefined);
+  }
+});
+
+function removeSingleTargetedFeature() {
+  if (currentlyTargetedFeature) {
+    wipeLabelByFeature(currentlyTargetedFeature);
+    coreVectorSource.removeFeature(currentlyTargetedFeature);
+    mapOverlay.setPosition(undefined);
+    currentlyTargetedFeature = null;
+    syncDataStorage();
+    calculateDashboardMetrics();
+    triggerToast('🗑 تم حذف المعلم جغرافياً بنجاح');
+  }
+}
+
+// ══════════════════════════════════════════════
+//  7. CORE SYSTEM LOGICS & MANAGEMENT
+// ══════════════════════════════════════════════
+function refreshLayers() {
+  const osmCheck = document.getElementById('layer-osm-chk').checked;
+  const osmOpacity = parseFloat(document.getElementById('layer-osm-sld').value);
+  layerOSM.setVisible(osmCheck); layerOSM.setOpacity(osmOpacity);
+  document.getElementById('layer-osm-lbl').textContent = Math.round(osmOpacity*100) + '%';
+
+  const satCheck = document.getElementById('layer-sat-chk').checked;
+  const satOpacity = parseFloat(document.getElementById('layer-sat-sld').value);
+  layerSatellite.setVisible(satCheck); layerSatellite.setOpacity(satOpacity);
+  document.getElementById('layer-sat-lbl').textContent = Math.round(satOpacity*100) + '%';
+
+  const senCheck = document.getElementById('layer-sen-chk').checked;
+  const senOpacity = parseFloat(document.getElementById('layer-sen-sld').value);
+  layerSentinel.setVisible(senCheck); layerSentinel.setOpacity(senOpacity);
+  document.getElementById('layer-sen-lbl').textContent = Math.round(senOpacity*100) + '%';
+}
+
+function calculateDashboardMetrics() {
+  const features = coreVectorSource.getFeatures();
+  let dmg = 0, lines = 0, polys = 0;
+  
+  features.forEach(f => {
+    const sType = f.get('spatialType');
+    const gType = f.getGeometry() ? f.getGeometry().getType() : '';
+    if(sType === 'damage_node') dmg++;
+    else if(gType === 'LineString') lines++;
+    else if(gType === 'Polygon') polys++;
+  });
+
+  document.getElementById('panel-val-dmg').textContent = dmg;
+  document.getElementById('panel-val-line').textContent = lines;
+  document.getElementById('panel-val-poly').textContent = polys;
+  document.getElementById('panel-val-total').textContent = features.length;
+}
+
+function applyDataFilter() {
+  const showDmg = document.getElementById('filter-dmg-only').checked;
+  const showMsr = document.getElementById('filter-msr-only').checked;
+
+  coreVectorSource.getFeatures().forEach(f => {
+    const sType = f.get('spatialType');
+    wipeLabelByFeature(f); // Clear to re-evaluate visibility
+    
+    // We can simulate visibility by updating style dynamically
+    if ((sType === 'damage_node' && !showDmg) || (sType === 'measurement' && !showMsr)) {
+      f.setStyle(new ol.style.Style({})); // Invisible style
+    } else {
+      f.setStyle(undefined); // Reset to layer core style
+      constructFeatureMapLabel(f);
+    }
+  });
+}
+
+function syncDataStorage() {
+  const features = coreVectorSource.getFeatures();
+  if(!features.length) { localStorage.removeItem('georef_master_features'); return; }
+  const geojsonStr = new ol.format.GeoJSON().writeFeatures(features, { featureProjection: 'EPSG:3857' });
+  localStorage.setItem('georef_master_features', geojsonStr);
+}
+
+function initialBootLoad() {
+  const cached = localStorage.getItem('georef_master_features');
+  if(!cached) return;
+  try {
+    const reader = new ol.format.GeoJSON();
+    const features = reader.readFeatures(cached, { featureProjection: 'EPSG:3857' });
+    coreVectorSource.addFeatures(features);
+    features.forEach(f => constructFeatureMapLabel(f));
+    calculateDashboardMetrics();
+  } catch(e) { console.error("Bootload caching failed", e); }
+}
+
+function jumpToCoordinates() {
+  const val = document.getElementById('search-coord-input').value;
+  if(!val) return;
+  const tokens = val.split(',').map(Number);
+  if(tokens.length === 2 && !isNaN(tokens[0]) && !isNaN(tokens[1])) {
+    const targetProj = ol.proj.fromLonLat([tokens[0], tokens[1]]);
+    mainMap.getView().animate({ center: targetProj, zoom: 17, duration: 800 });
+    triggerToast('✈ تم الانتقال بنجاح للموقع الجغرافي');
+  } else { triggerToast('⚠ صيغة الإحداثيات خاطئة (خط طول , خط عرض)'); }
+}
+
+function downloadGeoJSON() {
+  const features = coreVectorSource.getFeatures();
+  if(!features.length) { triggerToast('⚠ لا توجد معالم لتصديرها حالياً'); return; }
+  const geojsonStr = new ol.format.GeoJSON().writeFeatures(features, { featureProjection: 'EPSG:3857' });
+  const blob = new Blob([geojsonStr], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `GeoResponse_Export_${new Date().toISOString().slice(0,10)}.geojson`;
+  a.click();
+  triggerToast('✅ تم تصدير ملف ونموذج الـ GeoJSON بنجاح');
+}
+
+function wipeAllFeatures() {
+  if(!coreVectorSource.getFeatures().length) return;
+  if(!confirm('هل أنت متأكد من مسح جميع المعالم الجغرافية وسجل الرصد الميداني نهائياً؟')) return;
+  coreVectorSource.getFeatures().forEach(f => wipeLabelByFeature(f));
+  structuralLabelMap.clear();
+  coreVectorSource.clear();
+  mapOverlay.setPosition(undefined);
+  syncDataStorage();
+  calculateDashboardMetrics();
+  triggerToast('🗑 تم تنظيف قاعدة البيانات الجغرافية وتصفير العدادات');
+}
+
+function triggerMapCapture() {
+  mainMap.once('rendercomplete', function() {
+    const canvas = document.createElement('canvas');
+    const size = mainMap.getSize();
+    canvas.width = size[0]; canvas.height = size[1];
+    const ctx = canvas.getContext('2d');
+    
+    document.querySelectorAll('.ol-layer canvas').forEach(canv => {
+      if (canv.width > 0) {
+        const opacity = canv.parentNode.style.opacity;
+        ctx.globalAlpha = opacity === '' ? 1 : Number(opacity);
+        const transform = canv.style.transform;
+        const match = transform.match(/^matrix\(([^\)]+)\)$/);
+        if (match) {
+          const v = match[1].split(',').map(Number);
+          ctx.setTransform(v[0], v[1], v[2], v[3], v[4], v[5]);
+        } else { ctx.setTransform(1,0,0,1,0,0); }
+        ctx.drawImage(canv, 0, 0);
+      }
+    });
+    
+    ctx.setTransform(1,0,0,1,0,0); ctx.globalAlpha = 1;
+    try {
+      const a = document.createElement('a');
+      a.download = `Operational_Capture_${new Date().toISOString().slice(0,10)}.png`;
+      a.href = canvas.toDataURL('image/png');
+      a.click();
+      triggerToast('📸 تم التقاط وحفظ لقطة الشاشة للتقرير الجغرافي');
+    } catch(err) { triggerToast('⚠ يتطلب التشغيل عبر بيئة خادم (Live Server) لالتقاط الصورة'); }
+  });
+  mainMap.renderSync();
+}
+
+// ══════════════════════════════════════════════
+//  8. INTERACTIVE UTILITIES
+// ══════════════════════════════════════════════
+function togglePanel(id) {
+  const p = document.getElementById(id);
+  p.style.display = p.style.display === 'block' ? 'none' : 'block';
+}
+function mapZoom(delta) { const v = mainMap.getView(); v.animate({ zoom: v.getZoom() + delta, duration: 200 }); }
+function teleportToHome() { mainMap.getView().animate({ center: defaultGazaCenter, zoom: 14, duration: 500 }); }
+
+let toastTimer;
+function triggerToast(text) {
+  const t = document.getElementById('toast-notification');
+  t.textContent = text; t.classList.add('active');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('active'), 3200);
+}
+
+// System Startup Initiation
+initialBootLoad();
+</script>
+</body>
+</html>
